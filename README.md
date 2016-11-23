@@ -39,3 +39,7 @@ Intermittent network errors while communicating with Graphite might leed to perm
     ```
 
 * Instrument the `http` block or any server or location beneath it using `log_by_lua 'metrics_graphite:log()';`
+
+## License
+
+nginx-metrics-graphite is licensed under the Apache License, Version 2.0. See LICENSE for more information.
