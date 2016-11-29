@@ -105,8 +105,13 @@ function MetricsGraphite:worker()
 
     -- submit metrics
     sock:send(this.mbase .. ".nginx_metrics.num_requests " .. this.stats:get("requests") .. " " .. ngx.time() .. "\n")
+    sock:send(this.mbase .. ".nginx_metrics.num_upstream_requests " .. this.stats:get("upstream_requests") .. " " .. ngx.time() .. "\n")
+    sock:send(this.mbase .. ".nginx_metrics.num_gzip_requests " .. this.stats:get("gzip_requests") .. " " .. ngx.time() .. "\n")
+    sock:send(this.mbase .. ".nginx_metrics.num_ssl_requests " .. this.stats:get("ssl_requests") .. " " .. ngx.time() .. "\n")
+
     sock:send(this.mbase .. ".nginx_metrics.acc_request_length " .. this.stats:get("request_length") .. " " .. ngx.time() .. "\n")
     sock:send(this.mbase .. ".nginx_metrics.acc_bytes_sent " .. this.stats:get("bytes_sent") .. " " .. ngx.time() .. "\n")
+
     sock:send(this.mbase .. ".nginx_metrics.avg_request_time " .. avg_request_time .. " " .. ngx.time() .. "\n")
 
     for k,v in pairs(self.query_status) do
