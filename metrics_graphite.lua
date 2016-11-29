@@ -26,11 +26,22 @@ function MetricsGraphite.init(carbon_host, interval, mbase)
     method_options = "OPTIONS",
     method_other = ""
   }
+  self.query_http = {
+    http_09 = 0.9,
+    http_10 = 1.0,
+    http_11 = 1.1,
+    http_20 = 2.0
+  }
 
   -- initialize/reset counters
   self.stats = ngx.shared.metrics_graphite -- TODO: unclear whether ngx.shared.DICT is thread-safe?
   self.stats:set("main_loop_worker", 0)
-  self.stats:set("requests", 0)
+
+  self.stats:set("requests", 0) -- total number
+  self.stats:set("upstream_requests", 0) -- requests which used an upstream server
+  self.stats:set("gzip_requests", 0) -- responses which used gzip
+  self.stats:set("ssl_requests", 0) -- requests which used ssl
+
   self.stats:set("request_length", 0)
   self.stats:set("bytes_sent", 0)
 
@@ -42,6 +53,10 @@ function MetricsGraphite.init(carbon_host, interval, mbase)
   end
 
   for k,v in pairs(self.query_method) do
+    self.stats:set(k, 0)
+  end
+
+  for k,v in pairs(self.query_http) do
     self.stats:set(k, 0)
   end
 
@@ -89,18 +104,21 @@ function MetricsGraphite:worker()
     self.stats:set("request_time_num", 0)
 
     -- submit metrics
-    sock:send(this.mbase .. ".nginx_test.test" .. ngx.worker.pid() .. " 1 " .. ngx.time() .. "\n")
-    sock:send(this.mbase .. ".nginx_test.num_requests " .. this.stats:get("requests") .. " " .. ngx.time() .. "\n")
-    sock:send(this.mbase .. ".nginx_test.acc_request_length " .. this.stats:get("request_length") .. " " .. ngx.time() .. "\n")
-    sock:send(this.mbase .. ".nginx_test.acc_bytes_sent " .. this.stats:get("bytes_sent") .. " " .. ngx.time() .. "\n")
-    sock:send(this.mbase .. ".nginx_test.avg_request_time " .. avg_request_time .. " " .. ngx.time() .. "\n")
+    sock:send(this.mbase .. ".nginx_metrics.num_requests " .. this.stats:get("requests") .. " " .. ngx.time() .. "\n")
+    sock:send(this.mbase .. ".nginx_metrics.acc_request_length " .. this.stats:get("request_length") .. " " .. ngx.time() .. "\n")
+    sock:send(this.mbase .. ".nginx_metrics.acc_bytes_sent " .. this.stats:get("bytes_sent") .. " " .. ngx.time() .. "\n")
+    sock:send(this.mbase .. ".nginx_metrics.avg_request_time " .. avg_request_time .. " " .. ngx.time() .. "\n")
 
     for k,v in pairs(self.query_status) do
-      sock:send(this.mbase .. ".nginx_test.num_" .. k .. " " .. this.stats:get(k) .. " " .. ngx.time() .. "\n")
+      sock:send(this.mbase .. ".nginx_metrics.num_" .. k .. " " .. this.stats:get(k) .. " " .. ngx.time() .. "\n")
     end
 
     for k,v in pairs(self.query_method) do
-      sock:send(this.mbase .. ".nginx_test.num_" .. k .. " " .. this.stats:get(k) .. " " .. ngx.time() .. "\n")
+      sock:send(this.mbase .. ".nginx_metrics.num_" .. k .. " " .. this.stats:get(k) .. " " .. ngx.time() .. "\n")
+    end
+
+    for k,v in pairs(self.query_http) do
+      sock:send(this.mbase .. ".nginx_metrics.num_" .. k .. " " .. this.stats:get(k) .. " " .. ngx.time() .. "\n")
     end
 
     sock:close()
@@ -118,6 +136,15 @@ function MetricsGraphite:log()
   -- function by default called on every request,
   -- should be fast and only do important calculations here
   self.stats:incr("requests", 1)
+  if ngx.var.upstream_response_time ~= nil then
+    self.stats:incr("upstream_requests", 1)
+  end
+  if ngx.var.gzip_ratio ~= nil then
+    self.stats:incr("gzip_requests", 1)
+  end
+  if ngx.var.ssl_protocol ~= nil then
+    self.stats:incr("ssl_requests", 1)
+  end
 
   for k,v in pairs(self.query_status) do
     if ngx.status >= v and ngx.status < v+100 then
@@ -136,6 +163,14 @@ function MetricsGraphite:log()
   end
   if is_method_other then
     self.stats:incr("method_other", 1)
+  end
+
+  for k,v in pairs(self.query_http) do
+    -- float equaliy
+    if math.abs(v - ngx.req.http_version()) < 0.01 then
+      self.stats:incr(k, 1)
+      break
+    end
   end
 
   local request_length = ngx.var.request_length -- in bytes
