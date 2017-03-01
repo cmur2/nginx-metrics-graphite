@@ -2,10 +2,10 @@
 local MetricsGraphite = {}
 MetricsGraphite.__index = MetricsGraphite
 
-function MetricsGraphite.init(carbon_host, interval, mbase)
+function MetricsGraphite.init(carbon_hosts, interval, mbase)
   local self = setmetatable({}, MetricsGraphite)
   ngx.log(ngx.INFO, "nginx-metrics-graphite initializing on nginx version " .. ngx.config.nginx_version .. " with ngx_lua version " .. ngx.config.ngx_lua_version)
-  self.carbon_host = carbon_host
+  self.carbon_hosts = carbon_hosts
   self.interval = interval
   self.mbase = mbase
 
@@ -86,47 +86,50 @@ function MetricsGraphite:worker()
     end
 
     -- then do the work which might incur delays
-    local sock, err = ngx.socket.tcp()
-    if err then
-      ngx.log(ngx.ERR, "nginx-metrics-graphite callback failed to create carbon socket: ", err)
-      return
+    -- submit the metrics to each configured carbon host
+    for i,carbon_host in this.carbon_hosts do
+      local sock, err = ngx.socket.tcp()
+      if err then
+        ngx.log(ngx.ERR, "nginx-metrics-graphite callback failed to create carbon host #" .. i .. " socket: ", err)
+        return
+      end
+
+      -- connect to carbon host with submission port via TCP
+      local ok, err = sock:connect(carbon_host, 2003)
+      if not ok then
+        ngx.log(ngx.ERR, "nginx-metrics-graphite callback failed to connect carbon host #" .. i .. " socket: ", err)
+        return
+      end
+
+      local avg_request_time = this.stats:get("request_time_sum") / this.stats:get("request_time_num")
+      self.stats:set("request_time_sum", 0)
+      self.stats:set("request_time_num", 0)
+
+      -- submit metrics
+      sock:send(this.mbase .. ".nginx_metrics.num_requests " .. this.stats:get("requests") .. " " .. ngx.time() .. "\n")
+      sock:send(this.mbase .. ".nginx_metrics.num_upstream_requests " .. this.stats:get("upstream_requests") .. " " .. ngx.time() .. "\n")
+      sock:send(this.mbase .. ".nginx_metrics.num_gzip_requests " .. this.stats:get("gzip_requests") .. " " .. ngx.time() .. "\n")
+      sock:send(this.mbase .. ".nginx_metrics.num_ssl_requests " .. this.stats:get("ssl_requests") .. " " .. ngx.time() .. "\n")
+
+      sock:send(this.mbase .. ".nginx_metrics.acc_request_length " .. this.stats:get("request_length") .. " " .. ngx.time() .. "\n")
+      sock:send(this.mbase .. ".nginx_metrics.acc_bytes_sent " .. this.stats:get("bytes_sent") .. " " .. ngx.time() .. "\n")
+
+      sock:send(this.mbase .. ".nginx_metrics.avg_request_time " .. avg_request_time .. " " .. ngx.time() .. "\n")
+
+      for k,v in pairs(self.query_status) do
+        sock:send(this.mbase .. ".nginx_metrics.num_" .. k .. " " .. this.stats:get(k) .. " " .. ngx.time() .. "\n")
+      end
+
+      for k,v in pairs(self.query_method) do
+        sock:send(this.mbase .. ".nginx_metrics.num_" .. k .. " " .. this.stats:get(k) .. " " .. ngx.time() .. "\n")
+      end
+
+      for k,v in pairs(self.query_http) do
+        sock:send(this.mbase .. ".nginx_metrics.num_" .. k .. " " .. this.stats:get(k) .. " " .. ngx.time() .. "\n")
+      end
+
+      sock:close()
     end
-
-    -- connect to carbon host with submission port via TCP
-    local ok, err = sock:connect(this.carbon_host, 2003)
-    if not ok then
-      ngx.log(ngx.ERR, "nginx-metrics-graphite callback failed to connect carbon socket: ", err)
-      return
-    end
-
-    local avg_request_time = this.stats:get("request_time_sum") / this.stats:get("request_time_num")
-    self.stats:set("request_time_sum", 0)
-    self.stats:set("request_time_num", 0)
-
-    -- submit metrics
-    sock:send(this.mbase .. ".nginx_metrics.num_requests " .. this.stats:get("requests") .. " " .. ngx.time() .. "\n")
-    sock:send(this.mbase .. ".nginx_metrics.num_upstream_requests " .. this.stats:get("upstream_requests") .. " " .. ngx.time() .. "\n")
-    sock:send(this.mbase .. ".nginx_metrics.num_gzip_requests " .. this.stats:get("gzip_requests") .. " " .. ngx.time() .. "\n")
-    sock:send(this.mbase .. ".nginx_metrics.num_ssl_requests " .. this.stats:get("ssl_requests") .. " " .. ngx.time() .. "\n")
-
-    sock:send(this.mbase .. ".nginx_metrics.acc_request_length " .. this.stats:get("request_length") .. " " .. ngx.time() .. "\n")
-    sock:send(this.mbase .. ".nginx_metrics.acc_bytes_sent " .. this.stats:get("bytes_sent") .. " " .. ngx.time() .. "\n")
-
-    sock:send(this.mbase .. ".nginx_metrics.avg_request_time " .. avg_request_time .. " " .. ngx.time() .. "\n")
-
-    for k,v in pairs(self.query_status) do
-      sock:send(this.mbase .. ".nginx_metrics.num_" .. k .. " " .. this.stats:get(k) .. " " .. ngx.time() .. "\n")
-    end
-
-    for k,v in pairs(self.query_method) do
-      sock:send(this.mbase .. ".nginx_metrics.num_" .. k .. " " .. this.stats:get(k) .. " " .. ngx.time() .. "\n")
-    end
-
-    for k,v in pairs(self.query_http) do
-      sock:send(this.mbase .. ".nginx_metrics.num_" .. k .. " " .. this.stats:get(k) .. " " .. ngx.time() .. "\n")
-    end
-
-    sock:close()
   end
 
   -- start first timer

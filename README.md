@@ -37,7 +37,7 @@ Intermittent network errors while communicating with Graphite might leed to perm
 
     lua_shared_dict metrics_graphite 128k;
     lua_package_path ";;/opt/nginx-metrics-graphite/?.lua";
-    init_by_lua 'metrics_graphite = require("metrics_graphite").init("graphite.example.net", 300, "my.node.prefix")';
+    init_by_lua 'metrics_graphite = require("metrics_graphite").init({"graphite.example.net"}, 300, "my.node.prefix")';
     init_worker_by_lua 'metrics_graphite:worker()';
     ```
 
