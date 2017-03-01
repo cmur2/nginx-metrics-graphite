@@ -87,7 +87,7 @@ function MetricsGraphite:worker()
 
     -- then do the work which might incur delays
     -- submit the metrics to each configured carbon host
-    for i,carbon_host in this.carbon_hosts do
+    for i,carbon_host in ipairs(this.carbon_hosts) do
       local sock, err = ngx.socket.tcp()
       if err then
         ngx.log(ngx.ERR, "nginx-metrics-graphite callback failed to create carbon host #" .. i .. " socket: ", err)
