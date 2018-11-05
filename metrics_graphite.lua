@@ -34,7 +34,8 @@ function MetricsGraphite.init(carbon_hosts, interval, mbase)
   }
 
   -- initialize/reset counters
-  self.stats = ngx.shared.metrics_graphite -- TODO: unclear whether ngx.shared.DICT is thread-safe?
+  -- Note: ngx.shared.DICT is thread-safe, see https://github.com/openresty/lua-nginx-module#ngxshareddict
+  self.stats = ngx.shared.metrics_graphite
   self.stats:set("main_loop_worker", 0)
 
   self.stats:set("requests", 0) -- total number
@@ -64,7 +65,8 @@ function MetricsGraphite.init(carbon_hosts, interval, mbase)
 end
 
 function MetricsGraphite:worker()
-  -- determine which worker should handle the main loop, relies on thread-safety of ngx.shared.DICT:incr
+  -- determine which worker should handle the main loop, relies on the atomicity of ngx.shared.DICT:incr
+  -- see https://github.com/openresty/lua-nginx-module#ngxshareddict
   if self.stats:incr("main_loop_worker", 1) ~= 1 then
     return
   end
