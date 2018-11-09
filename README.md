@@ -53,7 +53,7 @@ Intermittent network errors while communicating with Graphite might leed to perm
 apt-get install luarocks # on Debian
 
 luarocks --local install luacheck
-luacheck --globals ngx -- metrics_graphite.lua
+luacheck --globals ngx --no-max-line-length -- metrics_graphite.lua
 ```
 
 ## License

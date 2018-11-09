@@ -49,15 +49,15 @@ function MetricsGraphite.init(carbon_hosts, interval, mbase)
   self.stats:set("request_time_sum", 0)
   self.stats:set("request_time_num", 0)
 
-  for k,v in pairs(self.query_status) do
+  for k,_ in pairs(self.query_status) do
     self.stats:set(k, 0)
   end
 
-  for k,v in pairs(self.query_method) do
+  for k,_ in pairs(self.query_method) do
     self.stats:set(k, 0)
   end
 
-  for k,v in pairs(self.query_http) do
+  for k,_ in pairs(self.query_http) do
     self.stats:set(k, 0)
   end
 
@@ -97,9 +97,9 @@ function MetricsGraphite:worker()
       end
 
       -- connect to carbon host with submission port via TCP
-      local ok, err = sock:connect(carbon_host, 2003)
+      local ok, err2 = sock:connect(carbon_host, 2003)
       if not ok then
-        ngx.log(ngx.ERR, "nginx-metrics-graphite callback failed to connect carbon host #" .. i .. " socket: ", err)
+        ngx.log(ngx.ERR, "nginx-metrics-graphite callback failed to connect carbon host #" .. i .. " socket: ", err2)
         return
       end
 
@@ -118,15 +118,15 @@ function MetricsGraphite:worker()
 
       sock:send(this.mbase .. ".nginx_metrics.avg_request_time " .. avg_request_time .. " " .. ngx.time() .. "\n")
 
-      for k,v in pairs(self.query_status) do
+      for k,_ in pairs(self.query_status) do
         sock:send(this.mbase .. ".nginx_metrics.num_" .. k .. " " .. this.stats:get(k) .. " " .. ngx.time() .. "\n")
       end
 
-      for k,v in pairs(self.query_method) do
+      for k,_ in pairs(self.query_method) do
         sock:send(this.mbase .. ".nginx_metrics.num_" .. k .. " " .. this.stats:get(k) .. " " .. ngx.time() .. "\n")
       end
 
-      for k,v in pairs(self.query_http) do
+      for k,_ in pairs(self.query_http) do
         sock:send(this.mbase .. ".nginx_metrics.num_" .. k .. " " .. this.stats:get(k) .. " " .. ngx.time() .. "\n")
       end
 
