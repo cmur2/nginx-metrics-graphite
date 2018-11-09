@@ -18,7 +18,11 @@ Collected metrics in this prototype implementation:
 * HTTP methods (GET, HEAD, PUT, POST, DELETE, OPTIONS, others)
 * HTTP versions (0.9, 1.0, 1.1, 2.0)
 
-Successfully tested with Nginx 1.6.2 and ngx_lua 0.9.12 on Debian Jessie.
+Successfully tested with:
+
+* Nginx 1.6.2 and ngx_lua 0.9.12 on Debian Jessie
+* Nginx 1.10.3 and ngx_lua 0.10.7 on Debian Stretch
+* Nginx 1.14.0 and ngx_lua 0.10.13 from backports on Debian Stretch
 
 ## Caveats
 
@@ -28,7 +32,7 @@ Intermittent network errors while communicating with Graphite might leed to perm
 
 ## Install
 
-* Install `nginx-extra` (includes Lua support) on Debian Jessie
+* Install `nginx-extra` (includes Lua support) on Debian Jessie and Debian Stretch
 * Clone the nginx-metrics-graphite repository to */opt/nginx-metrics-graphite*
 * Add the following config to top-level `http` block (300 second submission interval):
 
