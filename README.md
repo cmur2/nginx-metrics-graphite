@@ -26,9 +26,11 @@ Successfully tested with:
 
 ## Caveats
 
-A short metric submission interval might cause blocking on the Nginx worker threads since the shared dictionary storing all counters has to be locked.
+A short metric submission interval might cause blocking on the Nginx workers since the shared dictionary storing all counters has to be locked.
 
 Intermittent network errors while communicating with Graphite might leed to permanent loss of metric information. The communication happens in clear text and thus needs a secure separate network or other means.
+
+If the Nginx worker elected (on Nginx startup) to run the submission loop is killed or dies no further metrics will be send until a restart.
 
 ## Install
 

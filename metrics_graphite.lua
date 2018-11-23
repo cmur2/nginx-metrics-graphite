@@ -67,6 +67,7 @@ end
 function MetricsGraphite:worker()
   -- determine which worker should handle the main loop, relies on the atomicity of ngx.shared.DICT:incr
   -- see https://github.com/openresty/lua-nginx-module#ngxshareddict
+  -- caveeat: if the main loop worker dies no further metrics will be sent!
   if self.stats:incr("main_loop_worker", 1) ~= 1 then
     return
   end
