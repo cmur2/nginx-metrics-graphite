@@ -55,7 +55,7 @@ If the Nginx worker elected (on Nginx startup) to run the submission loop is kil
 apt-get install luarocks # on Debian
 
 luarocks --local install luacheck
-luacheck --globals ngx --no-max-line-length -- metrics_graphite.lua
+luacheck .
 ```
 
 ## License
