@@ -4,7 +4,7 @@ This is a Lua plugin for the Nginx web server that automatically collects and su
 
 In constrast to commercial and proprietary solutions such as  [Luameter](https://luameter.com/) or [NGINX Plus](https://www.nginx.com/products/) with it's [ngx_http_status_module](http://nginx.org/en/docs/http/ngx_http_status_module.html), this plugin is open source software while featuring more and additional metrics compared to those available via the open source  [ngx_http_stub_status_module](http://nginx.org/en/docs/http/ngx_http_stub_status_module.html). (Yea, [other web servers](https://redmine.lighttpd.net/projects/1/wiki/Docs_ModStatus) deliver more information by default...)
 
-This plugin takes inspiration from other Nginx metric libraries like [nginx-lua-prometheus](https://github.com/knyar/nginx-lua-prometheus) but differs fundamentally in the metrics submission handling. In certain intervals it automatically pushes metrics to the configured instance(s) of [Carbon](https://github.com/graphite-project/carbon/) using pure Lua code instead of exposing them via a separate web page for HTTP polling. For that is uses the Graphite plaintext protocol over TCP establishing a new connection for every push.
+This plugin takes inspiration from other Nginx metric libraries like [nginx-lua-prometheus](https://github.com/knyar/nginx-lua-prometheus) but differs fundamentally in the metrics submission handling. Instead of exposing the metrics via a separate web page for HTTP polling it automatically pushes them in certain intervals to the configured instance(s) of [Carbon](https://github.com/graphite-project/carbon/) using pure Lua code. For that is uses the [Graphite plaintext protocol](https://graphite.readthedocs.io/en/latest/feeding-carbon.html#the-plaintext-protocol) over TCP establishing a new connection for every push.
 
 The metrics collection happens on every request for which the user configures a suitable `log_by_lua` direcitve and towards server-wide global counters (finer granularity might be added later). The counters are realized using a single shared dictionary across all Nginx worker threads which has constant memory usage (128 KiB currently, may be reduced further).
 
@@ -28,7 +28,7 @@ Successfully tested with:
 
 A short metric submission interval might cause blocking on the Nginx workers since the shared dictionary storing all counters has to be locked.
 
-Intermittent network errors while communicating with Graphite might leed to permanent loss of metric information. The communication happens in clear text and thus needs a secure separate network or other means.
+Intermittent network errors while communicating with Graphite might lead to permanent loss of metric information. The communication happens in clear text and thus needs a secure separate network or other means.
 
 If the Nginx worker elected (on Nginx startup) to run the submission loop is killed or dies no further metrics will be send until a restart.
 
