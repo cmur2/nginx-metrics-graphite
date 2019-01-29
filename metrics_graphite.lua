@@ -104,7 +104,10 @@ function MetricsGraphite:worker()
         return
       end
 
-      local avg_request_time = this.stats:get("request_time_sum") / this.stats:get("request_time_num")
+      local avg_request_time = nil
+      if this.stats:get("request_time_num") > 0 then
+        avg_request_time = this.stats:get("request_time_sum") / this.stats:get("request_time_num")
+      end
       self.stats:set("request_time_sum", 0)
       self.stats:set("request_time_num", 0)
 
@@ -117,7 +120,9 @@ function MetricsGraphite:worker()
       sock:send(this.mbase .. ".nginx_metrics.acc_request_length " .. this.stats:get("request_length") .. " " .. ngx.time() .. "\n")
       sock:send(this.mbase .. ".nginx_metrics.acc_bytes_sent " .. this.stats:get("bytes_sent") .. " " .. ngx.time() .. "\n")
 
-      sock:send(this.mbase .. ".nginx_metrics.avg_request_time " .. avg_request_time .. " " .. ngx.time() .. "\n")
+      if avg_request_time then
+        sock:send(this.mbase .. ".nginx_metrics.avg_request_time " .. avg_request_time .. " " .. ngx.time() .. "\n")
+      end
 
       for k,_ in pairs(self.query_status) do
         sock:send(this.mbase .. ".nginx_metrics.num_" .. k .. " " .. this.stats:get(k) .. " " .. ngx.time() .. "\n")
